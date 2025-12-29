@@ -1,0 +1,140 @@
+Fuck yeah, let's dive deep into this shit. Here's the **exhaustive, verbose plan** for building your PreactJS Mad Libs multiplayer web game. This will work flawlessly for remote play (different networks) or local (same table, multiple phones/tablets on WiFi). No backend server needed beyond the free PeerJS broker for signaling—pure P2P after connection. Host it all on GitHub Pages: index.html, script.js (or bundled Preact), style.css. Lightweight as hell, mobile-first.
+
+### 1. Overall Architecture & Tech Stack
+- **Framework**: Preact (tiny React clone, ~3KB). Use via CDN for zero build initially, or vite/preact template later for components.
+- **P2P**: PeerJS (CDN: https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js). Uses free cloud broker (peerjs.com) by default—handles NAT traversal, ICE, etc. Works over HTTPS (GH Pages has it).
+- **Data**: Mad Libs templates from https://raw.githubusercontent.com/jonmpan/mad-libs-json/master/mad-libs.json (array of objects: {title, blanks: ["noun", "verb", ...], story: "The {0} went to the {1}..."}).
+- **Multiplayer Model**: Star topology (mesh is overkill for 4-8 players).
+  - One **host** (creator) picks story, collects words, assembles, reveals.
+  - Clients connect to host, submit words blindly (classic Mad Libs hilarity—no peeking).
+  - Supports 2-10 players easily.
+- **Room Codes**: Generate short, human-readable 6-char alphanumeric (e.g., "ABC123" or better word-based like "funny-banana"). Display big, with copy-to-clipboard button + native share API for mobile ease.
+- **Fallback**: Single-player mode always available.
+- **No persistence**: Game ends when host leaves (simple).
+
+### 2. Project Setup on GitHub
+- Repo: https://github.com/gbgbgb8/madlibs
+- Files:
+  - index.html (main entry)
+  - style.css (mobile-friendly, big inputs/buttons)
+  - script.js (all logic, or main.jsx if using Preact build)
+  - Optionally: templates.json (cache the fetched JSON locally)
+- Enable GitHub Pages on main branch /docs or root.
+- Test locally: Open index.html in multiple tabs/windows (same device) or devices on network.
+
+### 3. UI Screens & Flow (Mobile-First)
+Use Preact components or plain DOM for simplicity.
+
+1. **Landing Screen**
+   - Big buttons: "Create Room" (host), "Join Room" (client), "Single Player"
+   - Single Player: Immediate random story.
+
+2. **Create Room (Host Flow)**
+   - Generate room code (see below).
+   - Create Peer with fixed ID = room code.
+   - Show: "Room Code: XXXXXX" (huge font), Copy button, Share button (navigator.share).
+   - Waiting lobby: List connected players (nicknames).
+   - When ready: "Pick Story" button → Story picker.
+   - Then "Start Filling" → Broadcast blanks.
+
+3. **Join Room (Client Flow)**
+   - Input field for room code (uppercase, auto-format).
+   - Prompt for nickname.
+   - Connect to host Peer ID = entered code.
+   - Join lobby, see others.
+   - Wait for host to start.
+
+4. **Input Screen**
+   - All players see prompts one-by-one or all at once (all-at-once better for mobile scroll).
+   - Each prompt: "Give me a [noun]:" + input field.
+   - Blind submission: Clients send words to host only.
+   - Host can fill own words or auto-random.
+
+5. **Reveal Screen**
+   - Host assembles story, broadcasts completed text.
+   - Everyone sees the hilarious result.
+   - Buttons: "Play Again" (new story), "New Room" (reset).
+
+6. **Lobby/Status**
+   - Show connected players, ping-ish status.
+   - Chat optional (simple text broadcast for trash talk).
+
+### 4. Room Code System (Easy Sharing Focus)
+- Generate: Use word list (animals, adjectives) for memorable: e.g., "silly-penguin", "crazy-taco" (4-5 syllables max). Or base62 short: Math.random().toString(36).substring(2,8).toUpperCase() → "K9P4M2".
+- Best: 6-char uppercase alphanumeric (A-Z0-9) minus confusing (O0, I1) → ~10 billion combos, collision negligible.
+- Sharing:
+  - Big bold code.
+  - <button onclick="navigator.clipboard.writeText(code)">Copy Code</button>
+  - if (navigator.share) { navigator.share({title: "Join my Mad Libs!", text: `Room code: ${code}`, url: location.href}) }
+  - On join: Pre-fill from URL param ?room=ABC123
+
+### 5. PeerJS Implementation Details
+- CDN include PeerJS.
+- Every player: const peer = new Peer(); // Clients get random ID
+- Host: const peer = new Peer(roomCode, {key: 'peerjs'}); // Use roomCode as fixed ID. Free broker allows this.
+- Connections:
+  - Clients: peer.connect(hostId) → data channel.
+  - Host: peer.on('connection', conn => { store conn by playerId/nick })
+- DataChannel messages: JSON objects {type: 'join', nick: 'Bob'}, {type: 'word', index: 3, word: 'fart'}, {type: 'story', completed: '...'}
+- Broadcast from host: forEach(conn => conn.send(msg))
+- Clients only send to host.
+- Events:
+  - conn.on('open'), conn.on('data'), conn.on('close') → handle disconnects, remove player.
+  - peer.on('error') → graceful (e.g., "Connection failed, try again").
+- Reconnections: If host drops, game over (or advanced: elect new host).
+
+### 6. Game Logic Step-by-Step
+1. Fetch templates once: fetch('https://raw.githubusercontent.com/.../mad-libs.json').then(r=>r.json())
+2. Host picks story → {blanks[], template}
+3. Broadcast {type: 'blanks', prompts: blanks} // e.g. ["noun", "adjective"]
+4. Players submit words → send to host {type: 'submit', words: ["dog", "smelly"]}
+5. Host collects all (one set per player, or round-robin).
+   - Classic: Everyone submits full set blindly → multiple stories or concatenate.
+   - Fun variant: Sequential prompts, words used in order.
+6. Host fills template: story.replace(/{(\d+)}/g, (_,i) => words[i])
+7. Broadcast completed story → all reveal.
+
+### 7. Mobile UX Polish
+- Viewport meta.
+- Touch-friendly: Large inputs, buttons min 48px.
+- Keyboard: autofocus next input, or submit on enter.
+- Orientation: Portrait primary.
+- Offline: Service worker optional for PWA feel.
+- Sound effects? Fun "ding" on submit/reveal.
+
+### 8. Development Phases (Build Incrementally)
+1. **Phase 1: Single Player**
+   - Fetch templates, random pick, input form, fill & reveal.
+   - Pure DOM or basic Preact.
+
+2. **Phase 2: Basic Multiplayer**
+   - Host creates fixed Peer ID as room code.
+   - Clients join by entering code.
+   - Lobby with player list.
+
+3. **Phase 3: Game Sync**
+   - Host broadcasts blanks.
+   - Clients submit words.
+   - Host assembles & reveals.
+
+4. **Phase 4: Polish**
+   - Nicknames, disconnect handling.
+   - Multiple stories, themes.
+   - Share API, copy code.
+   - Error messages, loading states.
+
+5. **Phase 5: Extras**
+   - Random silly words fallback.
+   - Timer for submissions.
+   - Export story as text/image.
+
+### 9. Potential Pitfalls & Fixes
+- NAT/Firewall: Free PeerJS broker handles most, but ~10% fail → show "Try on same WiFi" fallback.
+- Collision: If room code taken, append -2 or regenerate.
+- Scale: Fine for 10 players, data channels lightweight.
+- Security: None needed—public fun game.
+- Debugging: peer.debug = 3; console logs everything.
+
+This plan is rock-solid from first principles: Keep host authoritative, minimize data sent, make sharing dead simple. Start with single player today, you'll have multiplayer in a weekend.
+
+Push that first commit, man—Napa evenings with dogs and family playing this will be legendary. Hit me when you need code snippets or debugging help. Let's fucking go! 🚀

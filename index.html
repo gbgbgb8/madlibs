@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="Silly Mad Libs - A hilarious word game for dads and daughters! Play solo or with friends online.">
+    <meta name="theme-color" content="#1E1E24">
+    <title>🎯 Silly Mad Libs! - Twister Edition</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎯</text></svg>">
+</head>
+<body>
+    <!-- Twister Dots Background -->
+    <div class="twister-dots"></div>
+    
+    <div id="app">
+        <!-- Floating decorations -->
+        <div class="floating-decorations">
+            <span class="floaty" style="--delay: 0s; --duration: 6s; left: 5%;">🎯</span>
+            <span class="floaty" style="--delay: 1.5s; --duration: 7s; left: 15%;">🎲</span>
+            <span class="floaty" style="--delay: 0.5s; --duration: 5.5s; left: 25%;">💨</span>
+            <span class="floaty" style="--delay: 2.5s; --duration: 6.5s; left: 35%;">🤪</span>
+            <span class="floaty" style="--delay: 1s; --duration: 5s; left: 45%;">😂</span>
+            <span class="floaty" style="--delay: 3s; --duration: 7.5s; left: 55%;">🎪</span>
+            <span class="floaty" style="--delay: 0.3s; --duration: 6s; left: 65%;">🎈</span>
+            <span class="floaty" style="--delay: 2s; --duration: 5.5s; left: 75%;">🎭</span>
+            <span class="floaty" style="--delay: 0.8s; --duration: 6.5s; left: 85%;">✨</span>
+            <span class="floaty" style="--delay: 1.2s; --duration: 7s; left: 95%;">🌈</span>
+        </div>
+
+        <!-- Landing Screen -->
+        <div id="landing-screen" class="screen active">
+            <div class="logo-container">
+                <h1 class="logo">
+                    <span class="logo-word">Silly</span>
+                    <span class="logo-word bounce">Mad</span>
+                    <span class="logo-word wiggle">Libs!</span>
+                </h1>
+                <p class="tagline">🎯 Twister Edition • For Dads & Daughters 💨</p>
+            </div>
+            
+            <div class="button-stack">
+                <button id="btn-create-room" class="btn btn-primary btn-huge">
+                    <span class="btn-icon">🏠</span>
+                    <span class="btn-text">Create Room</span>
+                    <span class="btn-subtitle">Host a multiplayer game</span>
+                </button>
+                
+                <button id="btn-join-room" class="btn btn-secondary btn-huge">
+                    <span class="btn-icon">🚪</span>
+                    <span class="btn-text">Join Room</span>
+                    <span class="btn-subtitle">Enter a friend's code</span>
+                </button>
+                
+                <button id="btn-single-player" class="btn btn-tertiary btn-huge">
+                    <span class="btn-icon">🎮</span>
+                    <span class="btn-text">Solo Silliness</span>
+                    <span class="btn-subtitle">Play by yourself</span>
+                </button>
+            </div>
+            
+            <div class="footer-note">
+                <p>⚠️ Warning: May cause uncontrollable giggling! 🤭</p>
+                <p class="credits">Made with 💨 for silly families</p>
+            </div>
+        </div>
+
+        <!-- Create Room Screen -->
+        <div id="create-room-screen" class="screen">
+            <button class="btn-back" id="btn-back-create">← Back</button>
+            <div class="screen-content">
+                <h2 class="screen-title yellow">🏠 Room Created!</h2>
+                
+                <div class="room-code-container">
+                    <p class="room-code-label">Share this code with your players:</p>
+                    <div class="room-code-display">
+                        <span id="room-code">------</span>
+                    </div>
+                    <div class="room-code-buttons">
+                        <button id="btn-copy-code" class="btn btn-small btn-yellow">📋 Copy</button>
+                        <button id="btn-share" class="btn btn-small btn-secondary">📤 Share</button>
+                    </div>
+                </div>
+
+                <div class="lobby">
+                    <h3>🎭 Players in Room</h3>
+                    <ul id="player-list" class="player-list">
+                        <!-- Players populated by JS -->
+                    </ul>
+                    <p class="player-hint" id="player-hint">Waiting for friends to join...</p>
+                </div>
+
+                <button id="btn-start-game" class="btn btn-primary btn-huge">
+                    <span class="btn-icon">🚀</span>
+                    <span class="btn-text">Start Game!</span>
+                    <span class="btn-subtitle">Waiting for players...</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Join Room Screen -->
+        <div id="join-room-screen" class="screen">
+            <button class="btn-back" id="btn-back-join">← Back</button>
+            <div class="screen-content">
+                <h2 class="screen-title blue">🚪 Join Game</h2>
+                
+                <div class="join-form">
+                    <div class="input-group">
+                        <label for="input-nickname">Your silly name:</label>
+                        <input type="text" id="input-nickname" placeholder="Captain Fartypants" maxlength="20" autocomplete="off">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="input-room-code">Room code:</label>
+                        <input type="text" id="input-room-code" placeholder="ABC123" maxlength="6" autocomplete="off" class="room-code-input">
+                    </div>
+                    
+                    <button id="btn-join" class="btn btn-primary btn-huge">
+                        <span class="btn-icon">🎉</span>
+                        <span class="btn-text">Join!</span>
+                    </button>
+                </div>
+                
+                <div id="join-status" class="status-message"></div>
+            </div>
+        </div>
+
+        <!-- Lobby Screen (for joined players) -->
+        <div id="lobby-screen" class="screen">
+            <div class="screen-content">
+                <h2 class="screen-title green">🎈 You're In!</h2>
+                
+                <div class="connection-status" id="connection-status">
+                    <span class="connection-dot connected"></span>
+                    <span>Connected to host</span>
+                </div>
+                
+                <div class="spinner-dots">
+                    <div class="spinner-dot"></div>
+                    <div class="spinner-dot"></div>
+                    <div class="spinner-dot"></div>
+                    <div class="spinner-dot"></div>
+                </div>
+                
+                <div class="lobby">
+                    <h3>🎭 Players Ready</h3>
+                    <ul id="lobby-player-list" class="player-list"></ul>
+                </div>
+                
+                <p class="waiting-text">⏳ Waiting for host to start the game...</p>
+            </div>
+        </div>
+
+        <!-- Story Picker Screen -->
+        <div id="story-picker-screen" class="screen">
+            <button class="btn-back" id="btn-back-picker">← Back</button>
+            <div class="screen-content">
+                <h2 class="screen-title red">📚 Pick a Story!</h2>
+                <p class="screen-subtitle">Choose wisely... or don't! It's gonna be silly anyway! 🤪</p>
+                
+                <div id="story-list" class="story-list">
+                    <!-- Stories loaded dynamically -->
+                </div>
+                
+                <button id="btn-random-story" class="btn btn-yellow btn-huge">
+                    <span class="btn-icon">🎲</span>
+                    <span class="btn-text">Surprise Me!</span>
+                    <span class="btn-subtitle">Pick a random story</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Input Screen -->
+        <div id="input-screen" class="screen">
+            <div class="screen-content">
+                <h2 class="screen-title green" id="input-title">📝 Fill in the Blanks!</h2>
+                <p class="screen-subtitle" id="input-subtitle">Don't peek at the story - that's cheating! 👀</p>
+                
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div id="progress-fill" class="progress-fill"></div>
+                    </div>
+                    <span id="progress-text" class="progress-text">0 / 0</span>
+                </div>
+                
+                <form id="word-form" class="word-form">
+                    <!-- Word inputs loaded dynamically -->
+                </form>
+                
+                <button type="submit" form="word-form" id="btn-reveal" class="btn btn-primary btn-huge" disabled>
+                    <span class="btn-icon">✨</span>
+                    <span class="btn-text">Reveal the Madness!</span>
+                    <span class="btn-subtitle">Submit your silly words</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Reveal Screen -->
+        <div id="reveal-screen" class="screen">
+            <div class="screen-content">
+                <div class="reveal-header">
+                    <h2 class="screen-title yellow">🎉 MASTERPIECE! 🎉</h2>
+                    <div class="confetti-burst">
+                        <span>🎯</span><span>🎲</span><span>🎈</span><span>🎪</span><span>🎭</span>
+                    </div>
+                </div>
+                
+                <div class="story-container">
+                    <h3 id="story-title" class="story-title"></h3>
+                    <div id="story-content" class="story-content"></div>
+                </div>
+                
+                <div class="action-buttons">
+                    <button id="btn-play-again" class="btn btn-primary btn-huge">
+                        <span class="btn-icon">🔄</span>
+                        <span class="btn-text">Play Again!</span>
+                        <span class="btn-subtitle">Same story, new words</span>
+                    </button>
+                    
+                    <button id="btn-new-story" class="btn btn-secondary btn-huge">
+                        <span class="btn-icon">📚</span>
+                        <span class="btn-text">New Story</span>
+                        <span class="btn-subtitle">Pick another adventure</span>
+                    </button>
+                    
+                    <button id="btn-home" class="btn btn-tertiary btn-huge">
+                        <span class="btn-icon">🏠</span>
+                        <span class="btn-text">Exit Game</span>
+                        <span class="btn-subtitle">Return to menu</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" class="loading-overlay">
+            <div class="loading-content">
+                <div class="spinner-dots">
+                    <div class="spinner-dot"></div>
+                    <div class="spinner-dot"></div>
+                    <div class="spinner-dot"></div>
+                    <div class="spinner-dot"></div>
+                </div>
+                <p id="loading-text">Loading...</p>
+            </div>
+        </div>
+
+        <!-- Toast Container -->
+        <div id="toast-container" class="toast-container"></div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
